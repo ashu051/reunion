@@ -8,21 +8,15 @@ const { Pool } = require('pg');
 const app = express();
 app.use(express.json());
 
-const secretKey = 'mysecretkey'; // Replace with a secure key in production
+const secretKey = 'secret'; 
 const linkk = process.env.DBConnLink;
-// Initialize a PostgreSQL connection pool
 const pool = new Pool({
   connectionString: linkk,
-  
-  // Replace with your PostgreSQL credentials and database name
 });
-
-// Authentication middleware
 app.use(async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
       if (req.path === '/api/authenticate/' && req.method === 'POST' || req.path === '/api/user/' && req.method === 'GET' || req.path === '/api/posts/' && req.method === 'GET') {
-        // Allow unauthenticated access to the /api/authenticate endpoint
         next();
       } else {
         return res.status(401).json({ message: 'Missing authorization header' });
@@ -32,7 +26,6 @@ app.use(async (req, res, next) => {
       if (scheme !== 'Bearer' || !token) {
         return res.status(401).json({ message: 'Invalid authorization header' });
       }
-  
       try {
         const decodedToken = jwt.verify(token, secretKey);
         const query = 'SELECT id, email FROM users WHERE id = $1';
@@ -43,7 +36,6 @@ app.use(async (req, res, next) => {
         if (!user) {
           return res.status(401).json({ message: 'Invalid user ID in token' });
         }
-  
         req.user = user;
         next();
       } catch (error) {
@@ -52,14 +44,10 @@ app.use(async (req, res, next) => {
       }
     }
   });
-  
-
-// Authenticate user and return a JWT token
 app.post('/api/authenticate', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Look up user by email and password
     const query = 'SELECT id, email FROM users WHERE email = $1 AND password = $2';
     const values = [email, password];
     const { rows } = await pool.query(query, values);
@@ -69,23 +57,17 @@ app.post('/api/authenticate', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Create a JWT token with the user ID and email as payload
     const token = jwt.sign({ id: user.id, email: user.email }, secretKey);
 
-    // Return the JWT token and user ID in the response
     res.json({ token, user_id: user.id });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-
-// Endpoint that requires authentication
 app.get('/api/me', (req, res) => {
   res.json({ user_id: req.user.id });
 });
-
-
 app.post('/api/follow/:id', async (req, res) => {
     const id = req.params.id;
     console.log(id);
@@ -200,23 +182,15 @@ app.post('/api/follow/:id', async (req, res) => {
     try {
       const postId = req.params.id;
       const userId = req.user.id;
-      
-      // Check if post exists
-      const post = await pool.query('SELECT * FROM posts WHERE id = $1', [postId]);
+            const post = await pool.query('SELECT * FROM posts WHERE id = $1', [postId]);
       if (post.rows.length === 0) {
         return res.status(404).json({ message: 'Post not found' });
       }
-  
-      // Check if user has already liked the post
       const likedPost = await pool.query('SELECT * FROM likes WHERE post_id = $1 AND user_id = $2', [postId, userId]);
       if (likedPost.rows.length > 0) {
         return res.status(409).json({ message: 'You have already liked this post' });
       }
-  
-      // Add like to database
       const result = await pool.query('INSERT INTO likes (post_id, user_id) VALUES ($1, $2) RETURNING *', [postId, userId]);
-      
-      // Return success response
       res.status(201).json({
         message: 'Post liked',
         like: result.rows[0]
@@ -229,7 +203,6 @@ app.post('/api/follow/:id', async (req, res) => {
   app.post('/api/unlike/:id', async (req, res) => {
     const postId = req.params.id;
     const userId = req.user.id;
-  
     try {
       const unlikeQuery = `
         DELETE FROM likes 
@@ -314,8 +287,7 @@ app.post('/api/follow/:id', async (req, res) => {
         ORDER BY 
           posts.created_at DESC
       `;
-    //   const values = [req.user.id];
-      const { rows } = await pool.query(query);
+            const { rows } = await pool.query(query);
       const posts = rows.map(row => ({
         id: row.id,
         title: row.title,
@@ -331,9 +303,6 @@ app.post('/api/follow/:id', async (req, res) => {
       return res.status(500).json({ message: 'Internal server error' });
     }
   });
-  
-  
-// Start the server
 app.listen(3000, () => {
   console.log('Server listening on port 3000');
 });
