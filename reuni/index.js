@@ -1,15 +1,19 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
+dotenv.config();
+
 const { Pool } = require('pg');
 
 const app = express();
 app.use(express.json());
 
 const secretKey = 'mysecretkey'; // Replace with a secure key in production
-
+const linkk = process.env.DBConnLink;
 // Initialize a PostgreSQL connection pool
 const pool = new Pool({
-  connectionString: 'postgresql://postgres:root@localhost:5432/reunion',
+  connectionString: linkk,
+  
   // Replace with your PostgreSQL credentials and database name
 });
 
